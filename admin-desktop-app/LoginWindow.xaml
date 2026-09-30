@@ -1,0 +1,68 @@
+﻿<Window x:Class="OmasAdminApp.LoginWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="OMAS Collection — Admin Login"
+        Width="460" Height="580"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+    <Border CornerRadius="16" Background="#1A1A2E" Padding="40">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" BlurRadius="30" Opacity="0.5" ShadowDepth="0"/>
+        </Border.Effect>
+        <StackPanel>
+            <!-- Logo -->
+            <TextBlock Text="OMAS" FontSize="42" FontWeight="Black"
+                       Foreground="#C8963E" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+            <TextBlock Text="COLLECTION" FontSize="13" FontWeight="Light"
+                       Foreground="#B0BEC5" HorizontalAlignment="Center"/>
+            <TextBlock Text="ADMIN PORTAL" FontSize="11" FontWeight="Light"
+                       Foreground="#C8963E" HorizontalAlignment="Center" Margin="0,4,0,24"/>
+
+            <!-- Separator -->
+            <Border Height="1" Background="#C8963E" Opacity="0.4" Margin="0,0,0,24"/>
+
+            <!-- Error -->
+            <Border x:Name="ErrorPanel" Background="#3D1515" CornerRadius="6" Padding="12,8"
+                    Margin="0,0,0,16" Visibility="Collapsed">
+                <TextBlock x:Name="ErrorText" Foreground="#F44336" FontSize="12" TextWrapping="Wrap"/>
+            </Border>
+
+            <!-- Server URL -->
+            <TextBlock Text="API SERVER URL" FontSize="10" FontWeight="SemiBold"
+                       Foreground="#B0BEC5" Margin="0,0,0,6"/>
+            <TextBox x:Name="ServerUrlBox" Style="{StaticResource ModernTextBox}"
+                     Margin="0,0,0,16" Height="40"/>
+
+            <!-- Email -->
+            <TextBlock Text="ADMIN EMAIL" FontSize="10" FontWeight="SemiBold"
+                       Foreground="#B0BEC5" Margin="0,0,0,6"/>
+            <TextBox x:Name="EmailBox" Style="{StaticResource ModernTextBox}"
+                     Margin="0,0,0,16" Height="40"/>
+
+            <!-- Password -->
+            <TextBlock Text="PASSWORD" FontSize="10" FontWeight="SemiBold"
+                       Foreground="#B0BEC5" Margin="0,0,0,6"/>
+            <PasswordBox x:Name="PasswordBox" Style="{StaticResource ModernPasswordBox}"
+                         Margin="0,0,0,24" Height="40"/>
+
+            <!-- Login Button -->
+            <Button x:Name="LoginBtn" Content="ENTER ADMIN SUITE"
+                    Style="{StaticResource PrimaryButton}"
+                    Height="46" FontSize="13"
+                    Click="LoginBtn_Click"/>
+
+            <!-- Status -->
+            <TextBlock x:Name="StatusText" Text="" Foreground="#B0BEC5"
+                       FontSize="11" HorizontalAlignment="Center" Margin="0,12,0,0"/>
+
+            <!-- Close -->
+            <Button Content="✕" Background="Transparent" Foreground="#555" BorderThickness="0"
+                    FontSize="14" HorizontalAlignment="Right" Margin="0,16,0,0" Cursor="Hand"
+                    Click="CloseBtn_Click"/>
+        </StackPanel>
+    </Border>
+</Window>
+

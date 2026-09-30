@@ -1,16 +1,15 @@
 <?php
-header("Content-Type: application/json");
-header("Access-Control-Allow-Origin: http://127.0.0.1:5173");
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header("Access-Control-Max-Age: 3600");
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') { http_response_code(200); exit(); }
-
+require_once __DIR__ . "/cors.php";
 require_once __DIR__ . "/db.php";
+require_once __DIR__ . "/auth.php";
+
 $data = json_decode(file_get_contents("php://input"));
 
-if (!$data) { echo json_encode(["error" => "No data received"]); exit; }
+if (!$data || !isset($data->email) || !isset($data->password)) {
+    http_response_code(400);
+    echo json_encode(["error" => "Email and password are required"]);
+    exit;
+}
 
 $stmt = $conn->prepare("SELECT id, username, email, password, role FROM users WHERE email = ?");
 $stmt->bind_param("s", $data->email);
@@ -19,15 +18,25 @@ $result = $stmt->get_result();
 
 if ($row = $result->fetch_assoc()) {
     if (password_verify($data->password, $row['password'])) {
-        session_start();
         $_SESSION['user_id'] = $row['id'];
         $_SESSION['role'] = $row['role'];
-        echo json_encode(["message" => "Login successful", "user" => [
-            "id" => $row['id'],
-            "username" => $row['username'],
-            "email" => $row['email'],
-            "role" => $row['role']
-        ]]);
-    } else { echo json_encode(["error" => "Wrong password"]); }
-} else { echo json_encode(["error" => "User not found"]); }
+        echo json_encode([
+            "message" => "Login successful",
+            "user" => [
+                "id" => $row['id'],
+                "username" => $row['username'],
+                "email" => $row['email'],
+                "role" => $row['role']
+            ]
+        ]);
+    } else {
+        http_response_code(401);
+        echo json_encode(["error" => "Invalid email or password"]);
+    }
+} else {
+    http_response_code(401);
+    echo json_encode(["error" => "Invalid email or password"]);
+}
+$stmt->close();
+$conn->close();
 ?>

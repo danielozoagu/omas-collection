@@ -1,27 +1,26 @@
 <?php
-header("Content-Type: application/json");
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header("Access-Control-Max-Age: 3600");
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') { http_response_code(200); exit(); }
-
+require_once __DIR__ . "/cors.php";
 require_once __DIR__ . "/db.php";
 require_once __DIR__ . "/auth.php";
 requireAdmin();
 
 // Total Revenue and Orders
 $sales_result = $conn->query("SELECT COUNT(*) as total_orders, IFNULL(SUM(total_amount), 0) as total_revenue FROM orders");
-$sales = $sales_result->fetch_assoc();
+$sales = $sales_result ? $sales_result->fetch_assoc() : ["total_orders" => 0, "total_revenue" => 0];
 
 // Total Products
 $product_result = $conn->query("SELECT COUNT(*) as total_products FROM products");
-$products = $product_result->fetch_assoc();
+$products = $product_result ? $product_result->fetch_assoc() : ["total_products" => 0];
 
-// Combine into one response
+// Total Customers
+$customer_result = $conn->query("SELECT COUNT(*) as total_customers FROM users WHERE role = 'customer'");
+$customers = $customer_result ? $customer_result->fetch_assoc() : ["total_customers" => 0];
+
 echo json_encode([
-    "total_revenue" => $sales['total_revenue'],
-    "total_orders" => $sales['total_orders'],
-    "total_products" => $products['total_products']
+    "total_revenue" => (float) ($sales['total_revenue'] ?? 0),
+    "total_orders" => (int) ($sales['total_orders'] ?? 0),
+    "total_products" => (int) ($products['total_products'] ?? 0),
+    "total_customers" => (int) ($customers['total_customers'] ?? 0)
 ]);
+$conn->close();
 ?>

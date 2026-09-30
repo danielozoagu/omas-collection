@@ -1,16 +1,24 @@
-# Logs
+﻿# Logs
 logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
-lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Dependencies and build outputs
+node_modules/
+dist/
+dist-ssr/
 *.local
+
+# C# build artifacts
+admin-desktop-app/bin/
+admin-desktop-app/obj/
+admin-desktop-app/*.exe
+admin-desktop-app/*.pdb
+*.exe
+*.pdb
 
 # Editor directories and files
 .vscode/*
@@ -18,7 +26,4 @@ dist-ssr
 .idea
 .DS_Store
 *.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+*.user

@@ -1,22 +1,12 @@
 <?php
-header("Content-Type: application/json");
-header("Access-Control-Allow-Origin: http://127.0.0.1:5173");
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header("Access-Control-Max-Age: 3600");
-
-if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-
+require_once __DIR__ . "/cors.php";
 require_once __DIR__ . "/db.php";
 require_once __DIR__ . "/auth.php";
-requireAdmin();
+requireAdmin($conn);
 
-$id = isset($_GET['id']) ? intval($_GET['id']) : 0;
+$id = isset($_GET['id']) ? intval($_GET['id']) : (isset($_POST['id']) ? intval($_POST['id']) : 0);
 if ($id <= 0) {
+    http_response_code(400);
     echo json_encode(["success" => false, "message" => "Invalid product ID"]);
     $conn->close();
     exit();
@@ -30,6 +20,7 @@ $current_product = $current_result->fetch_assoc();
 $current_stmt->close();
 
 if (!$current_product) {
+    http_response_code(444);
     echo json_encode(["success" => false, "message" => "Product not found"]);
     $conn->close();
     exit();
@@ -48,7 +39,9 @@ if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
     $filename = uniqid("product_", true) . ($extension ? "." . $extension : "");
     $target_file = $target_dir . $filename;
     if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_file)) {
-        $image_path = "http://localhost/OMAS-COLLECTION-BACKEND/uploads/" . $filename;
+        $scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+        $image_path = "$scheme://$host/OMAS-COLLECTION-BACKEND/uploads/" . $filename;
     }
 }
 
@@ -63,6 +56,7 @@ $stmt->bind_param("ssdissi", $name, $category, $price, $stock, $image_path, $des
 if ($stmt->execute()) {
     echo json_encode(["success" => true, "message" => "Product updated!", "image" => $image_path]);
 } else {
+    http_response_code(500);
     echo json_encode(["success" => false, "message" => $stmt->error]);
 }
 
