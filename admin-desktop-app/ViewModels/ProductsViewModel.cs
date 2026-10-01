@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -36,19 +36,30 @@ namespace OmasAdminApp.ViewModels
         private string _formName = "";
         private string _formCategory = "Bags";
         private string _formDesc = "";
-        private decimal _formPrice;
-        private int _formStock;
+        private string _formPriceText = "";
+        private string _formStockText = "10";
         private string? _imagePath;
         private bool _isEditing;
         private int _editId;
 
         public string FormTitle => _isEditing ? "Edit Product" : "Add New Product";
-        public string FormName     { get => _formName;     set => Set(ref _formName,     value); }
-        public string FormCategory { get => _formCategory; set => Set(ref _formCategory, value); }
-        public string FormDesc     { get => _formDesc;     set => Set(ref _formDesc,     value); }
-        public decimal FormPrice   { get => _formPrice;    set => Set(ref _formPrice,    value); }
-        public int FormStock       { get => _formStock;    set => Set(ref _formStock,    value); }
-        public string? ImagePath   { get => _imagePath;    set => Set(ref _imagePath,    value); }
+        public string FormName      { get => _formName;      set => Set(ref _formName,      value); }
+        public string FormCategory  { get => _formCategory;  set => Set(ref _formCategory,  value); }
+        public string FormDesc      { get => _formDesc;      set => Set(ref _formDesc,      value); }
+        public string FormPriceText { get => _formPriceText; set => Set(ref _formPriceText, value); }
+        public string FormStockText { get => _formStockText; set => Set(ref _formStockText, value); }
+        public string? ImagePath    { get => _imagePath;    set => Set(ref _imagePath,    value); }
+
+        public decimal FormPrice
+        {
+            get => decimal.TryParse(_formPriceText, out var v) ? v : 0;
+            set => FormPriceText = value.ToString("0.##");
+        }
+        public int FormStock
+        {
+            get => int.TryParse(_formStockText, out var v) ? v : 0;
+            set => FormStockText = value.ToString();
+        }
 
         public List<string> CategoryList { get; } = new()
         {
@@ -66,26 +77,41 @@ namespace OmasAdminApp.ViewModels
         public ProductsViewModel()
         {
             LoadCommand      = new RelayCommand(async () => await LoadAsync());
-            AddCommand       = new RelayCommand(() => OpenForm(null));
-            EditCommand      = new RelayCommand(() => { if (SelectedProduct != null) OpenForm(SelectedProduct); });
+            AddCommand       = new RelayCommand(() =>
+            {
+                SelectedProduct = null;
+                OpenForm(null);
+            });
+            EditCommand      = new RelayCommand(() =>
+            {
+                if (SelectedProduct != null)
+                {
+                    OpenForm(SelectedProduct);
+                }
+                else
+                {
+                    StatusMessage = "Please select a product from the list to edit.";
+                }
+            });
             SaveCommand      = new RelayCommand(async () => await SaveAsync());
             DeleteCommand    = new RelayCommand(async () => await DeleteAsync());
             CancelCommand    = new RelayCommand(() => ShowForm = false);
             PickImageCommand = new RelayCommand(PickImage);
         }
 
-        private void OpenForm(Product? p)
+        public void OpenForm(Product? p)
         {
-            _isEditing   = p != null;
-            _editId      = p?.Id ?? 0;
-            FormName     = p?.Name        ?? "";
-            FormCategory = !string.IsNullOrEmpty(p?.Category) ? p.Category : "Bags";
-            FormDesc     = p?.Description ?? "";
-            FormPrice    = p?.Price       ?? 0;
-            FormStock    = p?.Stock       ?? 0;
-            ImagePath    = null;
+            _isEditing    = p != null;
+            _editId       = p?.Id ?? 0;
+            FormName      = p?.Name        ?? "";
+            FormCategory  = !string.IsNullOrEmpty(p?.Category) ? p.Category : "Bags";
+            FormDesc      = p?.Description ?? "";
+            FormPriceText = p != null ? p.Price.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) : "";
+            FormStockText = p != null ? p.Stock.ToString() : "10";
+            ImagePath     = null;
             OnPropertyChanged(nameof(FormTitle));
-            ShowForm     = true;
+            ShowForm      = true;
+            StatusMessage = _isEditing ? $"Editing '{FormName}'" : "Entering new product details...";
         }
 
         private void PickImage()
@@ -154,6 +180,19 @@ namespace OmasAdminApp.ViewModels
                 return;
             }
 
+            var cleanPrice = FormPriceText?.Replace(",", "").Trim() ?? "0";
+            if (!decimal.TryParse(cleanPrice, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var price) &&
+                !decimal.TryParse(cleanPrice, out price))
+            {
+                StatusMessage = "Please enter a valid price (e.g. 250000).";
+                return;
+            }
+
+            if (!int.TryParse(FormStockText?.Trim(), out var stock))
+            {
+                stock = 10;
+            }
+
             IsBusy = true;
             StatusMessage = "Saving product to store...";
             try
@@ -163,8 +202,8 @@ namespace OmasAdminApp.ViewModels
                     Id          = _editId,
                     Name        = FormName.Trim(),
                     Category    = FormCategory,
-                    Price       = FormPrice,
-                    Stock       = FormStock,
+                    Price       = price,
+                    Stock       = stock,
                     Description = FormDesc.Trim()
                 };
 

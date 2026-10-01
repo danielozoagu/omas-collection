@@ -191,7 +191,7 @@ namespace OmasAdminApp.Services
                 using var form = new MultipartFormDataContent();
                 form.Add(new StringContent(p.Name),                       "name");
                 form.Add(new StringContent(p.Category),                   "category");
-                form.Add(new StringContent(p.Price.ToString()),            "price");
+                form.Add(new StringContent(p.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)), "price");
                 form.Add(new StringContent(p.Stock.ToString()),            "stock");
                 form.Add(new StringContent(p.Description ?? ""),          "description");
                 var bytes = await File.ReadAllBytesAsync(imagePath);
@@ -201,7 +201,21 @@ namespace OmasAdminApp.Services
                 var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/add_product.php") { Content = form };
                 return await SendAsync<object>(req);
             }
-            return await SendAsync<object>(Post("add_product.php", p));
+
+            var dict = new Dictionary<string, string>
+            {
+                ["name"] = p.Name,
+                ["category"] = p.Category,
+                ["price"] = p.Price.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["stock"] = p.Stock.ToString(),
+                ["description"] = p.Description ?? "",
+                ["image"] = p.Image ?? ""
+            };
+            var formReq = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/add_product.php")
+            {
+                Content = new FormUrlEncodedContent(dict)
+            };
+            return await SendAsync<object>(formReq);
         }
 
         public async Task<ApiResponse<object>> UpdateProductAsync(Product p, string? imagePath = null)
@@ -212,7 +226,7 @@ namespace OmasAdminApp.Services
                 form.Add(new StringContent(p.Id.ToString()),               "id");
                 form.Add(new StringContent(p.Name),                       "name");
                 form.Add(new StringContent(p.Category),                   "category");
-                form.Add(new StringContent(p.Price.ToString()),            "price");
+                form.Add(new StringContent(p.Price.ToString(System.Globalization.CultureInfo.InvariantCulture)), "price");
                 form.Add(new StringContent(p.Stock.ToString()),            "stock");
                 form.Add(new StringContent(p.Description ?? ""),          "description");
                 var bytes = await File.ReadAllBytesAsync(imagePath);
@@ -222,7 +236,22 @@ namespace OmasAdminApp.Services
                 var req = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/update_product.php") { Content = form };
                 return await SendAsync<object>(req);
             }
-            return await SendAsync<object>(Post("update_product.php", p));
+
+            var dict = new Dictionary<string, string>
+            {
+                ["id"] = p.Id.ToString(),
+                ["name"] = p.Name,
+                ["category"] = p.Category,
+                ["price"] = p.Price.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                ["stock"] = p.Stock.ToString(),
+                ["description"] = p.Description ?? "",
+                ["image"] = p.Image ?? ""
+            };
+            var formReq = new HttpRequestMessage(HttpMethod.Post, $"{_baseUrl}/update_product.php")
+            {
+                Content = new FormUrlEncodedContent(dict)
+            };
+            return await SendAsync<object>(formReq);
         }
 
         // ============== ORDERS ==============

@@ -28,7 +28,50 @@ function App() {
   const [formData, setFormData] = useState({ name: '', category: '', price: '', stock: '', image: null, description: '', existing_image: '' });
   const [isEditing, setIsEditing] = useState(false);
   const [editId, setEditId] = useState(null);
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('omas_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const handleSetUser = (nextUser) => {
+    setUser(nextUser);
+    if (nextUser) {
+      try { localStorage.setItem('omas_user', JSON.stringify(nextUser)); } catch {}
+    } else {
+      try { localStorage.removeItem('omas_user'); } catch {}
+    }
+  };
+
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [formImageUrl, setFormImageUrl] = useState('');
+
+  const handleOpenAddModal = () => {
+    setFormData({ name: '', category: 'Bags', price: '', stock: '10', image: null, description: '', existing_image: '' });
+    setFormImageUrl('');
+    setIsEditing(false);
+    setEditId(null);
+    setShowProductModal(true);
+  };
+
+  const handleOpenEditModal = (product) => {
+    setFormData({
+      name: product.name || '',
+      category: product.category || 'Bags',
+      price: product.price || '',
+      stock: product.stock !== undefined ? product.stock : '10',
+      image: null,
+      description: product.description || '',
+      existing_image: product.image || ''
+    });
+    setFormImageUrl(product.image || '');
+    setIsEditing(true);
+    setEditId(product.id);
+    setShowProductModal(true);
+  };
   const [search, setSearch] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [quantity, setQuantity] = useState(1);
@@ -226,7 +269,7 @@ function App() {
         if (!res.ok) throw new Error(`Session request failed: ${res.status}`);
         return res.json();
       })
-      .then((data) => { if (!cancelled && data.user) setUser(data.user); })
+      .then((data) => { if (!cancelled && data.user) handleSetUser(data.user); })
       .catch((err) => console.error('Failed to restore session', err));
     return () => { cancelled = true; };
   }, []);
@@ -296,22 +339,35 @@ function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSaving) return;
+    if (!formData.name || !formData.name.trim()) {
+      setNotice('Please enter a product name.');
+      return;
+    }
     setIsSaving(true);
     const data = new FormData();
-    data.append('name', formData.name);
-    data.append('category', formData.category);
+    data.append('name', formData.name.trim());
+    data.append('category', formData.category || 'Bags');
     data.append('price', formData.price);
-    data.append('stock', formData.stock);
-    data.append('description', formData.description);
-    if (formData.image) { data.append('image', formData.image); }
-    else { data.append('existing_image', formData.existing_image); }
+    data.append('stock', formData.stock || 10);
+    data.append('description', formData.description ? formData.description.trim() : '');
+    
+    if (formData.image) {
+      data.append('image', formData.image);
+    } else if (formImageUrl && formImageUrl.trim()) {
+      data.append('image', formImageUrl.trim());
+    } else if (formData.existing_image) {
+      data.append('existing_image', formData.existing_image);
+    }
 
     const url = isEditing 
       ? `/api/update_product.php?id=${editId}`
       : '/api/add_product.php';
     
     try {
-      const response = await fetch(url, { method: 'POST', credentials: 'include', body: data });
+      const headers = {};
+      if (user?.token) headers['Authorization'] = `Bearer ${user.token}`;
+      if (user?.role) headers['X-Admin-Role'] = user.role;
+      const response = await fetch(url, { method: 'POST', credentials: 'include', headers, body: data });
       const result = await response.json();
       if (!response.ok) throw new Error(`Product save failed: ${response.status}`);
       if (result.success === false || result.error) {
@@ -319,15 +375,14 @@ function App() {
       }
       await loadProducts();
       setImageVersion(Date.now());
-      setFormData({ name: '', category: '', price: '', stock: '', image: null, description: '', existing_image: '' });
-      setIsEditing(false);
+      setShowProductModal(false);
       setNotice(isEditing ? 'Product updated successfully.' : 'Product added successfully.');
     } catch (err) {
       console.error('Failed to save product', err);
       setNotice('Product could not be saved. Please try again.');
     } finally {
       setIsSaving(false);
-      window.setTimeout(() => setNotice(''), 3000);
+      window.setTimeout(() => setNotice(''), 3500);
     }
   };
 
@@ -335,10 +390,13 @@ function App() {
     if (!window.confirm('Delete this item?')) return;
 
     try {
-      const response = await fetch('/api/delete_product.php', {
-        method: 'DELETE',
+      const headers = { 'Content-Type': 'application/json' };
+      if (user?.token) headers['Authorization'] = `Bearer ${user.token}`;
+      if (user?.role) headers['X-Admin-Role'] = user.role;
+      const response = await fetch(`/api/delete_product.php?id=${id}`, {
+        method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ id: Number(id) })
       });
 
@@ -476,7 +534,7 @@ function App() {
     } catch (error) {
       console.error('Failed to close server session', error);
     }
-    setUser(null);
+    handleSetUser(null);
     setShowWelcome(false);
     setIsMenuOpen(false);
     setShowProfile(false);
@@ -623,7 +681,7 @@ function App() {
         <div className="auth-overlay" onClick={() => setShowAuth(false)}>
           <div className="auth-modal" onClick={(event) => event.stopPropagation()}>
             <button className="auth-close" onClick={() => setShowAuth(false)} aria-label="Close login">×</button>
-            <Login onLogin={(authenticatedUser) => { setUser(authenticatedUser); setShowAuth(false); }} />
+            <Login onLogin={(authenticatedUser) => { handleSetUser(authenticatedUser); setShowAuth(false); }} />
           </div>
         </div>
       )}
@@ -655,23 +713,64 @@ function App() {
         </div>
 
         <div className="header-actions-right">
-          <button className="icon-button" aria-label="Track Orders" onClick={() => { setShowCustomerOrders(true); if (user) loadCustomerOrders(); }}>
+          <button className="icon-button header-hide-mobile" aria-label="Track Orders" onClick={() => { setShowCustomerOrders(true); if (user) loadCustomerOrders(); }}>
             Orders {customerOrders.length > 0 && <sup>{customerOrders.length}</sup>}
           </button>
           <button className="icon-button" aria-label="Open wishlist" onClick={() => user ? setShowWishlist(true) : setShowAuth(true)}>
             Wishlist <sup>{wishlist.length}</sup>
           </button>
-          <button className="icon-button" aria-label="Open cart" onClick={() => user ? setShowCart(true) : setShowAuth(true)}>
+          <button className="icon-button header-bag-btn" aria-label="Open cart" onClick={() => user ? setShowCart(true) : setShowAuth(true)}>
             Bag <sup>{cartItems.length}</sup>
           </button>
-          <button className="icon-button" aria-label="Profile" onClick={() => user ? setShowProfile(true) : setShowAuth(true)}>
+          <button className="icon-button header-hide-mobile" aria-label="Profile" onClick={() => user ? setShowProfile(true) : setShowAuth(true)}>
             Profile
           </button>
-          <button className="icon-button" aria-label="Account" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+          <button className="icon-button header-hide-mobile" aria-label="Account" onClick={() => setIsMenuOpen(!isMenuOpen)}>
             Account
           </button>
         </div>
       </header>
+
+      {user?.role === 'admin' && (
+        <aside className="admin-quick-bar" aria-label="Administrator bar">
+          <div className="admin-quick-bar-inner">
+            <span className="admin-badge">STUDIO ADMIN · {user.username || 'Admin'}</span>
+            <div className="admin-quick-actions">
+              <button type="button" className="admin-quick-btn add-btn" onClick={handleOpenAddModal}>
+                + Add New Piece
+              </button>
+              <button type="button" className="admin-quick-btn" onClick={() => { setShowDashboard(true); loadSales(); loadOrders(); }}>
+                Dashboard
+              </button>
+              <button type="button" className="admin-quick-btn" onClick={handleLogout}>
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </aside>
+      )}
+
+      <nav className="category-nav-bar" aria-label="Product categories">
+        <div className="category-nav-scroll">
+          <button
+            type="button"
+            className={`cat-nav-pill ${activeCategory === 'All' ? 'active' : ''}`}
+            onClick={() => { setActiveCategory('All'); closeProductDetail(); }}
+          >
+            All Pieces
+          </button>
+          {availableCategories.map((cat) => (
+            <button
+              type="button"
+              key={cat}
+              className={`cat-nav-pill ${activeCategory === cat ? 'active' : ''}`}
+              onClick={() => { setActiveCategory(cat); closeProductDetail(); }}
+            >
+              {cat.charAt(0).toUpperCase() + cat.slice(1)}
+            </button>
+          ))}
+        </div>
+      </nav>
 
       {isMenuOpen && (
         <div className="menu-layer" onClick={() => setIsMenuOpen(false)}>
@@ -692,6 +791,7 @@ function App() {
               <button className="drawer-account-link" onClick={() => { if (user) setShowCart(true); else setShowAuth(true); setIsMenuOpen(false); }}>Bag <span>{cartItems.length}</span></button>
               <button className="drawer-account-link" onClick={() => { if (user) setShowProfile(true); else setShowAuth(true); setIsMenuOpen(false); }}>Profile <span>→</span></button>
               {user?.role === 'admin' && <>
+                <button className="drawer-account-link admin-highlight" onClick={() => { handleOpenAddModal(); setIsMenuOpen(false); }}>+ Add New Piece <span>&rarr;</span></button>
                 <button className="drawer-account-link" onClick={() => { setShowDashboard(true); loadSales(); loadOrders(); setIsMenuOpen(false); }}>Dashboard <span>→</span></button>
                 <button className="drawer-account-link" onClick={() => { setShowDashboard(true); loadSales(); loadOrders(); setIsMenuOpen(false); }}>Order history <span>→</span></button>
               </>}
@@ -822,6 +922,32 @@ function App() {
                   <button className="detail-add-btn disabled" disabled>Out of stock</button>
                 )}
 
+                {user?.role === 'admin' && (
+                  <div className="detail-admin-actions">
+                    <button
+                      type="button"
+                      className="detail-edit-btn"
+                      onClick={() => {
+                        const prod = selectedProduct;
+                        handleOpenEditModal(prod);
+                      }}
+                    >
+                      ✎ Edit Piece Details
+                    </button>
+                    <button
+                      type="button"
+                      className="detail-delete-btn"
+                      onClick={() => {
+                        const id = selectedProduct.id;
+                        closeProductDetail();
+                        handleDelete(id);
+                      }}
+                    >
+                      ✕ Delete Piece
+                    </button>
+                  </div>
+                )}
+
                 <div className="detail-meta">
                   <div><span>Category</span><p>{selectedProduct.category}</p></div>
                   <div><span>Reference</span><p>OMAS-{String(selectedProduct.id).padStart(4, '0')}</p></div>
@@ -925,7 +1051,17 @@ function App() {
           </div>
         )}
 
-        <div className="section-heading"><span>{activeCategory === 'All' ? 'Featured pieces' : activeCategory}</span><span>{filteredProducts.length} pieces</span></div>
+        <div className="section-heading">
+          <div className="section-heading-left">
+            <span>{activeCategory === 'All' ? 'Featured pieces' : activeCategory}</span>
+            <span>{filteredProducts.length} pieces</span>
+          </div>
+          {user?.role === 'admin' && (
+            <button type="button" className="admin-add-piece-btn" onClick={handleOpenAddModal}>
+              + Add Product
+            </button>
+          )}
+        </div>
         <div className="product-grid">
           {filteredProducts.length === 0 ? <p className="empty-state">No products found in this category.</p> : (
             filteredProducts.map((product) => (
@@ -948,8 +1084,8 @@ function App() {
                     <button onClick={(e) => { e.stopPropagation(); addToCart(product.id, 1); }} className="add-cart-btn">Add to bag <span>→</span></button>
                     
                     {user?.role === 'admin' && (
-                      <div className="d-flex gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
-                         <button type="button" onClick={(e) => { e.stopPropagation(); handleEditClick(product); }} className="edit-btn">Edit</button>
+                      <div className="product-card-admin-actions" onClick={(e) => e.stopPropagation()}>
+                         <button type="button" onClick={(e) => { e.stopPropagation(); handleOpenEditModal(product); }} className="edit-btn">Edit</button>
                          <button type="button" onClick={(e) => { e.stopPropagation(); handleDelete(product.id); }} className="delete-btn">Delete</button>
                       </div>
                     )}
@@ -1100,11 +1236,15 @@ function App() {
             <div className="dashboard-header">
               <div>
                 <p className="eyebrow">OMAS / Studio control</p>
-                <h2>Good morning, {user.username || 'Admin'}.</h2>
+                <h2>Good morning, {user?.username || 'Admin'}.</h2>
                 <p className="dashboard-subtitle">Keep the collection moving. Every order, customer, and product in one place.</p>
               </div>
-              <button className="dashboard-close" onClick={() => setShowDashboard(false)} aria-label="Close dashboard">×</button>
-            </div>
+              <div className="dashboard-header-actions">
+                <button type="button" className="dashboard-add-product-btn" onClick={() => { setShowDashboard(false); handleOpenAddModal(); }}>
+                  + Add New Product
+                </button>
+                <button className="dashboard-close" onClick={() => setShowDashboard(false)} aria-label="Close dashboard">✕</button>
+              </div></div>
 
             <div className="dashboard-stat-grid">
               <div className="dashboard-stat dashboard-stat-featured"><span>Revenue to date</span><strong>{formatNaira(dashboardRevenue)}</strong><small>Across all orders</small></div>
@@ -1295,9 +1435,127 @@ function App() {
           </div>
         </div>
       )}
+      {showProductModal && (
+        <div className="product-modal-overlay" onClick={() => setShowProductModal(false)}>
+          <div className="product-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="product-modal-header">
+              <div>
+                <p className="eyebrow">Studio management</p>
+                <h2>{isEditing ? 'Edit Piece' : 'Add New Piece'}</h2>
+              </div>
+              <button type="button" className="dashboard-close" onClick={() => setShowProductModal(false)} aria-label="Close modal">×</button>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="product-modal-form">
+              <div className="form-group">
+                <label>Piece Name *</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Sovereign Calfskin Briefcase"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-row-2">
+                <div className="form-group">
+                  <label>Category *</label>
+                  <select
+                    value={formData.category}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    required
+                  >
+                    <option value="Bags">Bags</option>
+                    <option value="Watches">Watches</option>
+                    <option value="Jewelry">Jewelry</option>
+                    <option value="Shoes">Shoes</option>
+                    <option value="Clothing">Clothing</option>
+                    <option value="Accessories">Accessories</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Price in Naira (₦) *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    placeholder="e.g. 450000"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-row-2">
+                <div className="form-group">
+                  <label>Stock Available *</label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="10"
+                    value={formData.stock}
+                    onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Upload Image File</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setFormData({ ...formData, image: e.target.files[0] })}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>Or Image URL / Filename</label>
+                <input
+                  type="text"
+                  placeholder="https://... or product_6aada...jpg"
+                  value={formImageUrl}
+                  onChange={(e) => setFormImageUrl(e.target.value)}
+                />
+              </div>
+
+              {(formData.image || formImageUrl || formData.existing_image) && (
+                <div className="form-image-preview">
+                  <p className="preview-label">Selected Image Preview:</p>
+                  <img
+                    src={formData.image ? URL.createObjectURL(formData.image) : (formImageUrl || formData.existing_image)}
+                    alt="Preview"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                </div>
+              )}
+
+              <div className="form-group">
+                <label>Description *</label>
+                <textarea
+                  rows="3"
+                  placeholder="Describe the materials, craftsmanship, and silhouette..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="product-modal-actions">
+                <button type="submit" className="primary-button" disabled={isSaving}>
+                  {isSaving ? 'Saving piece...' : isEditing ? 'Update Piece' : 'Publish Piece'}
+                </button>
+                <button type="button" className="text-button" onClick={() => setShowProductModal(false)}>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 export default App;
-

@@ -15,7 +15,10 @@ function Login({ onLogin }) {
     try {
       const res = await fetch(url, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(formData) });
       const data = await res.json();
-      if (data.user) onLogin(data.user);
+      if (data.user) {
+        try { localStorage.setItem('omas_user', JSON.stringify(data.user)); } catch (e) {}
+        onLogin(data.user);
+      }
       else if (data.message) { alert(data.message); setIsRegister(false); }
       else setError(data.error);
     } catch { setError("Failed to connect."); }

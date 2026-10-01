@@ -31,8 +31,10 @@
             </Grid>
 
             <!-- Status Indicator -->
-            <TextBlock DockPanel.Dock="Bottom" Text="{Binding StatusMessage}"
-                       Foreground="#94A3B8" FontSize="11" Margin="0,10,0,0"/>
+            <Border DockPanel.Dock="Bottom" Margin="0,10,0,0" Padding="10,8" Background="#1E293B" CornerRadius="6">
+                <TextBlock Text="{Binding StatusMessage}"
+                           Foreground="#F59E0B" FontWeight="Medium" FontSize="12"/>
+            </Border>
 
             <!-- Products DataGrid -->
             <Border Background="#0F172A" CornerRadius="10" Padding="8" BorderBrush="#1E293B" BorderThickness="1">
@@ -43,7 +45,8 @@
                           Foreground="#F8FAFC" GridLinesVisibility="None" HeadersVisibility="Column"
                           ScrollViewer.HorizontalScrollBarVisibility="Auto"
                           ScrollViewer.VerticalScrollBarVisibility="Auto"
-                          CanUserResizeRows="False" SelectionMode="Single">
+                          CanUserResizeRows="False" SelectionMode="Single"
+                          MouseDoubleClick="DataGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="ID"          Binding="{Binding Id}"             Width="55"/>
                         <DataGridTextColumn Header="Product Name" Binding="{Binding Name}"           Width="*"/>
@@ -57,13 +60,13 @@
         </DockPanel>
 
         <!-- Product Add/Edit Form Panel -->
-        <Border Grid.Column="1" Background="#0F172A" CornerRadius="12" Width="320" Padding="20"
-                BorderBrush="#1E293B" BorderThickness="1"
+        <Border Grid.Column="1" Background="#0F172A" CornerRadius="12" Width="340" Padding="20"
+                BorderBrush="#D97706" BorderThickness="1"
                 Visibility="{Binding ShowForm, Converter={StaticResource BoolToVisibility}}">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel>
                     <TextBlock Text="{Binding FormTitle}"
-                               FontSize="16" FontWeight="Bold" Foreground="#F8FAFC" Margin="0,0,0,16"/>
+                               FontSize="17" FontWeight="Bold" Foreground="#F59E0B" Margin="0,0,0,16"/>
 
                     <TextBlock Text="Product Name" Foreground="#94A3B8" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,6"/>
                     <TextBox Style="{StaticResource ModernTextBox}"
@@ -87,14 +90,14 @@
                             <TextBlock Text="Price (NGN)" Foreground="#94A3B8" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,6"/>
                             <TextBox Style="{StaticResource ModernTextBox}"
                                      Tag="0.00"
-                                     Text="{Binding FormPrice, UpdateSourceTrigger=PropertyChanged}"
+                                     Text="{Binding FormPriceText, UpdateSourceTrigger=PropertyChanged}"
                                      Height="38"/>
                         </StackPanel>
                         <StackPanel Grid.Column="2">
                             <TextBlock Text="Stock Quantity" Foreground="#94A3B8" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,6"/>
                             <TextBox Style="{StaticResource ModernTextBox}"
-                                     Tag="0"
-                                     Text="{Binding FormStock, UpdateSourceTrigger=PropertyChanged}"
+                                     Tag="10"
+                                     Text="{Binding FormStockText, UpdateSourceTrigger=PropertyChanged}"
                                      Height="38"/>
                         </StackPanel>
                     </Grid>
@@ -110,7 +113,7 @@
                     <Button Content="Choose File..." Style="{StaticResource SecondaryButton}"
                             Command="{Binding PickImageCommand}" Margin="0,0,0,6" Height="36"/>
                     <TextBlock Text="{Binding ImagePath, FallbackValue='No image file chosen'}"
-                               Foreground="#64748B" FontSize="10" TextTrimming="CharacterEllipsis" Margin="0,0,0,20"/>
+                               Foreground="#94A3B8" FontSize="10" TextTrimming="CharacterEllipsis" Margin="0,0,0,20"/>
 
                     <Button Content="Save Product" Style="{StaticResource PrimaryButton}"
                             Command="{Binding SaveCommand}" Height="42" Margin="0,0,0,8"/>
