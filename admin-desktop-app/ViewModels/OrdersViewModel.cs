@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -94,13 +94,29 @@ namespace OmasAdminApp.ViewModels
                 var res = await ApiService.Instance.GetOrdersAsync();
                 if (res.Success && res.Data != null)
                 {
+                    // Snapshot previously selected order ID before list is replaced
+                    var previouslySelectedId = SelectedOrder?.Id;
+
                     _allOrders = res.Data;
                     ApplyFilter();
+
+                    // Restore the selection after reload so the sidebar stays visible
+                    if (previouslySelectedId.HasValue)
+                    {
+                        var restored = Orders.FirstOrDefault(o => o.Id == previouslySelectedId.Value);
+                        if (restored != null)
+                        {
+                            // Directly set the backing field to avoid re-triggering side effects
+                            _selected = restored;
+                            OnPropertyChanged(nameof(SelectedOrder));
+                        }
+                    }
+
                     StatusMessage = $"{_allOrders.Count} total store orders loaded.";
                 }
                 else
                 {
-                    StatusMessage = res.Message;
+                    StatusMessage = res.Message ?? "Failed to load orders.";
                 }
             }
             catch (Exception ex)
@@ -144,20 +160,40 @@ namespace OmasAdminApp.ViewModels
                 return;
             }
 
+            // Capture the order ID and details NOW before anything async
+            var orderId      = SelectedOrder.Id;
+            var statusToSet  = NewStatus;
+            var paymentToSet = NewPaymentStatus;
+            var trackingToSet = NewTracking?.Trim() ?? "";
+
+            // Guard: ensure we have a valid status selected
+            if (string.IsNullOrWhiteSpace(statusToSet))
+            {
+                StatusMessage = "Please choose a fulfillment status before updating.";
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(paymentToSet))
+            {
+                StatusMessage = "Please choose a payment status before updating.";
+                return;
+            }
+
             IsBusy = true;
-            StatusMessage = $"Updating Order #{SelectedOrder.Id}...";
+            StatusMessage = $"Updating Order #{orderId}...";
             try
             {
                 var res = await ApiService.Instance.UpdateOrderStatusAsync(
-                    SelectedOrder.Id, NewStatus, NewPaymentStatus, NewTracking);
+                    orderId, statusToSet, paymentToSet, trackingToSet);
+
                 if (res.Success)
                 {
+                    // Reload list (which will now restore SelectedOrder too)
                     await LoadAsync();
-                    StatusMessage = $"Order #{SelectedOrder.Id} updated successfully!";
+                    StatusMessage = $"? Order #{orderId} updated to '{statusToSet}' successfully!";
                 }
                 else
                 {
-                    StatusMessage = res.Message;
+                    StatusMessage = $"Update failed: {res.Message}";
                 }
             }
             catch (Exception ex)
