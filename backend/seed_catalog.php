@@ -89,6 +89,7 @@ foreach ($items as $p) {
     }
 }
 
+$conn->query("DELETE FROM products WHERE image = '' OR image IS NULL");
 // Deduplicate any repeated images if any existed earlier
 $conn->query("DELETE p1 FROM products p1 INNER JOIN products p2 ON p1.image = p2.image WHERE p1.id < p2.id AND p1.image != ''");
 $conn->query("DELETE FROM products WHERE name = '' OR name IS NULL OR price <= 0");
