@@ -2,7 +2,7 @@
 require_once __DIR__ . "/cors.php";
 require_once __DIR__ . "/db.php";
 require_once __DIR__ . "/auth.php";
-$user_id = requireLogin();
+$user_id = requireLogin($conn);
 
 $stmt = $conn->prepare("SELECT id, total_amount, status, payment_status, tracking_number, created_at FROM orders WHERE user_id = ? ORDER BY created_at DESC");
 $stmt->bind_param("i", $user_id);

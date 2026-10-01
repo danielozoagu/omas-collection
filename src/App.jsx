@@ -40,6 +40,36 @@ function App() {
   const [dashboardFilter, setDashboardFilter] = useState('All');
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [customerOrders, setCustomerOrders] = useState([]);
+    const [trackOrderId, setTrackOrderId] = useState('');
+    const [trackEmail, setTrackEmail] = useState('');
+    const [trackError, setTrackError] = useState('');
+    const [isSearchingOrder, setIsSearchingOrder] = useState(false);
+
+    const handleTrackOrder = async (e) => {
+      if (e) e.preventDefault();
+      if (!trackOrderId.trim()) {
+        setTrackError('Please enter an Order ID');
+        return;
+      }
+      setIsSearchingOrder(true);
+      setTrackError('');
+      try {
+        const cleanId = trackOrderId.replace(/[^0-9]/g, '');
+        const res = await fetch(`/api/track_order.php?order_id=${cleanId}&email=${encodeURIComponent(trackEmail.trim())}`);
+        const data = await res.json();
+        if (res.ok && data.success && data.order) {
+          setSelectedCustomerOrder(data.order);
+          setTrackError('');
+        } else {
+          setTrackError(data.message || 'Order not found. Please verify the order number.');
+        }
+      } catch (err) {
+        setTrackError('Failed to search order. Please try again.');
+      } finally {
+        setIsSearchingOrder(false);
+      }
+    };
+
   const [showCustomerOrders, setShowCustomerOrders] = useState(false);
   const [selectedCustomerOrder, setSelectedCustomerOrder] = useState(null);
   const [showAuth, setShowAuth] = useState(false);
@@ -625,6 +655,9 @@ function App() {
         </div>
 
         <div className="header-actions-right">
+          <button className="icon-button" aria-label="Track Orders" onClick={() => { setShowCustomerOrders(true); if (user) loadCustomerOrders(); }}>
+            Orders {customerOrders.length > 0 && <sup>{customerOrders.length}</sup>}
+          </button>
           <button className="icon-button" aria-label="Open wishlist" onClick={() => user ? setShowWishlist(true) : setShowAuth(true)}>
             Wishlist <sup>{wishlist.length}</sup>
           </button>

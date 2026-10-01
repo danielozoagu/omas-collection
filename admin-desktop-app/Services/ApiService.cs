@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
@@ -17,7 +17,7 @@ namespace OmasAdminApp.Services
         public static ApiService Instance => _instance ??= new ApiService();
 
         private readonly HttpClient _client;
-        private string _baseUrl = "http://localhost/OMAS-COLLECTION-BACKEND";
+        private string _baseUrl = "https://omas-backend-055z.onrender.com";
         private string? _token;
 
         public User? CurrentUser { get; private set; }

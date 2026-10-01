@@ -1,4 +1,4 @@
-﻿<Window x:Class="OmasAdminApp.LoginWindow"
+<Window x:Class="OmasAdminApp.LoginWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="OMAS Collection — Admin Login"
@@ -65,4 +65,3 @@
         </StackPanel>
     </Border>
 </Window>
-
