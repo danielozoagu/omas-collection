@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="OmasAdminApp.Views.CustomersView"
+<UserControl x:Class="OmasAdminApp.Views.CustomersView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="Transparent">
@@ -9,6 +9,7 @@
                     Command="{Binding LoadCommand}" HorizontalAlignment="Left" Padding="14,8"/>
 
             <TextBox Style="{StaticResource ModernTextBox}"
+                     Tag="Search customer name or email..."
                      Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                      HorizontalAlignment="Right" Width="240" Height="38"/>
         </Grid>
@@ -24,22 +25,15 @@
                       Background="Transparent" BorderThickness="0"
                       RowBackground="#1E293B" AlternatingRowBackground="#162032"
                       Foreground="#F8FAFC" GridLinesVisibility="None" HeadersVisibility="Column"
+                      ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                      ScrollViewer.VerticalScrollBarVisibility="Auto"
                       SelectionMode="Single">
-                <DataGrid.ColumnHeaderStyle>
-                    <Style TargetType="DataGridColumnHeader">
-                        <Setter Property="Background" Value="#0F172A"/>
-                        <Setter Property="Foreground" Value="#94A3B8"/>
-                        <Setter Property="Padding"    Value="12,10"/>
-                        <Setter Property="FontSize"   Value="11"/>
-                        <Setter Property="FontWeight" Value="SemiBold"/>
-                    </Style>
-                </DataGrid.ColumnHeaderStyle>
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Customer ID" Binding="{Binding Id}"        Width="100"/>
-                    <DataGridTextColumn Header="Full Name"   Binding="{Binding Username}"  Width="200"/>
+                    <DataGridTextColumn Header="Customer ID" Binding="{Binding Id}"        Width="90"/>
+                    <DataGridTextColumn Header="Full Name"   Binding="{Binding Username}"  Width="180"/>
                     <DataGridTextColumn Header="Email Address" Binding="{Binding Email}"   Width="*"/>
-                    <DataGridTextColumn Header="Account Role" Binding="{Binding Role}"     Width="120"/>
-                    <DataGridTextColumn Header="Member Since" Binding="{Binding CreatedAt}" Width="180"/>
+                    <DataGridTextColumn Header="Role"        Binding="{Binding Role}"      Width="100"/>
+                    <DataGridTextColumn Header="Member Since" Binding="{Binding CreatedAt}" Width="160"/>
                 </DataGrid.Columns>
             </DataGrid>
         </Border>
