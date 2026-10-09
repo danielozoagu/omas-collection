@@ -604,8 +604,11 @@ function App() {
   };
 
   const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = activeCategory === 'All' || product.category === activeCategory;
+    const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) ||
+      (product.description && product.description.toLowerCase().includes(search.toLowerCase()));
+    const productCat = (product.category || '').trim().toLowerCase();
+    const currentCat = activeCategory.trim().toLowerCase();
+    const matchesCategory = currentCat === 'all' || productCat === currentCat;
     return matchesSearch && matchesCategory;
   });
 
@@ -615,10 +618,10 @@ function App() {
   );
 
   const relatedProducts = selectedProduct
-    ? products.filter((p) => p.category === selectedProduct.category && p.id !== selectedProduct.id).slice(0, 4)
+    ? products.filter((p) => (p.category || '').trim().toLowerCase() === (selectedProduct.category || '').trim().toLowerCase() && p.id !== selectedProduct.id).slice(0, 4)
     : [];
 
-  const trendingSearches = ['Jacket', 'Blouse', 'Shoes', 'Bag', 'Men', 'Women', 'Accessories'];
+  const trendingSearches = ['Clothing', 'Shoes', 'Bags', 'Watches', 'Jewelry', 'Accessories', 'Gadgets'];
 
   const dashboardOrders = Array.isArray(orders) ? orders.filter((order) => {
     const searchText = dashboardSearch.trim().toLowerCase();
@@ -652,23 +655,33 @@ function App() {
   const getOrderItemPrice = (item) => Number(item.price || item.unit_price || item.amount || 0);
 
   const categoryDetails = {
-    Men: { label: 'Chapter 02 / Menswear', title: 'Form for the everyday.', description: 'Tailored essentials and considered companions for a life in motion.', image: 'https://images.pexels.com/photos/1043474/pexels-photo-1043474.jpeg?auto=compress&cs=tinysrgb&w=1800' },
-    Women: { label: 'Chapter 03 / Womenswear', title: 'A softer point of view.', description: 'Expressive layers and quiet signatures selected for your own rhythm.', image: 'https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=1800&q=85' },
-    Accessories: { label: 'Chapter 04 / Accessories', title: 'Small things. Lasting impact.', description: 'The finishing gestures that make an everyday object feel entirely yours.', image: 'https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?auto=format&fit=crop&w=1800&q=85' },
-    Gadgets: { label: 'Chapter 05 / Gadgets', title: 'Useful, beautifully.', description: 'Thoughtful tools designed to move naturally through your day.', image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=1800&q=85' },
-    Children: { label: 'Chapter 06 / Children', title: 'Made for small adventures.', description: 'Playful objects and easy pieces for the next generation of curious minds.', image: 'https://images.unsplash.com/photo-1503919545889-aef636e10ad4?auto=format&fit=crop&w=1800&q=85' }
+    Clothing: { label: 'Chapter 01 / Clothing', title: 'Expression in every stitch.', description: 'Tailored shirts, structured outerwear, and fluid silhouettes designed for contemporary living.', image: 'https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=1800&q=85' },
+    Shoes: { label: 'Chapter 02 / Shoes', title: 'Walk with purpose.', description: 'Sophisticated footwear and refined silhouettes crafted for lasting distinction and comfort.', image: 'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=800' },
+    Bags: { label: 'Chapter 03 / Bags', title: 'Carry your world.', description: 'Thoughtfully designed leather totes, duffles, and compact bags that move with your rhythm.', image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800' },
+    Watches: { label: 'Chapter 04 / Watches', title: 'Time, beautifully crafted.', description: 'Precision timepieces and horological craftsmanship to mark your defining moments.', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=800' },
+    Jewelry: { label: 'Chapter 05 / Jewelry', title: 'Subtle radiance.', description: 'Fine metals, brilliant stones, and timeless ornaments sculpted with delicate artistry.', image: 'https://images.unsplash.com/photo-1611591475879-165c40466453?w=800' },
+    Accessories: { label: 'Chapter 06 / Accessories', title: 'Small things. Lasting impact.', description: 'The finishing gestures and leather accents that make an everyday look entirely yours.', image: 'https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800' },
+    Gadgets: { label: 'Chapter 07 / Gadgets', title: 'Useful, beautifully.', description: 'Thoughtful personal tech, acoustics, and smart companions designed to elevate everyday rituals.', image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800' }
   };
-  const availableCategories = [...new Set([
-    'Women', 'Men', 'Accessories', 'Gadgets', 'Children',
-    ...products.map((product) => product.category).filter(Boolean)
-  ])];
+  const categoryOrder = ['Clothing', 'Shoes', 'Bags', 'Watches', 'Jewelry', 'Accessories', 'Gadgets'];
+  const dbCategories = [...new Set(products.map((product) => product.category?.trim()).filter(Boolean))];
+  const availableCategories = dbCategories.length > 0
+    ? dbCategories.sort((a, b) => {
+        const idxA = categoryOrder.indexOf(a);
+        const idxB = categoryOrder.indexOf(b);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.localeCompare(b);
+      })
+    : categoryOrder;
   const activeCategoryDetails = categoryDetails[activeCategory] || {
     label: `Collection / ${activeCategory}`,
     title: `${activeCategory.charAt(0).toUpperCase()}${activeCategory.slice(1)} for the everyday.`,
     description: `Explore considered pieces from our ${activeCategory} collection.`,
     image: products.find((product) => product.category === activeCategory && product.image)?.image || categoryDetails.Accessories.image
   };
-  const activeCategoryIndex = Object.keys(categoryDetails).indexOf(activeCategory);
+  const activeCategoryIndex = categoryOrder.indexOf(activeCategory);
 
   return (
     <div className={`storefront page-enter ${activeCategory !== 'All' ? 'category-view' : ''}`}>
@@ -1000,16 +1013,16 @@ function App() {
 
         <section className="image-chapters" aria-label="OMAS campaign chapters">
           <article className="image-chapter image-chapter-wide">
-            <img src="https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=1400&q=85" alt="Woman wearing an editorial fashion look" />
-            <div className="image-chapter-caption"><span>02</span><strong>Quiet structure</strong><button onClick={() => setActiveCategory('Women')}>Discover women <span>→</span></button></div>
+            <img src="https://images.unsplash.com/photo-1485968579580-b6d095142e6e?auto=format&fit=crop&w=1400&q=85" alt="Model wearing structured tailoring and clothing" />
+            <div className="image-chapter-caption"><span>02</span><strong>Quiet structure</strong><button onClick={() => setActiveCategory('Clothing')}>Discover clothing <span>→</span></button></div>
           </article>
           <article className="image-chapter">
-            <img src="https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=1000&q=85" alt="Man wearing a tailored menswear look" />
-            <div className="image-chapter-caption"><span>03</span><strong>Everyday form</strong><button onClick={() => setActiveCategory('Men')}>Discover men <span>→</span></button></div>
+            <img src="https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=1000&q=85" alt="Fine footwear and shoes" />
+            <div className="image-chapter-caption"><span>03</span><strong>Walk with purpose</strong><button onClick={() => setActiveCategory('Shoes')}>Discover shoes <span>→</span></button></div>
           </article>
           <article className="image-chapter image-chapter-accent">
-            <img src="https://images.unsplash.com/photo-1523779917675-b6ed3a42a561?auto=format&fit=crop&w=1000&q=85" alt="Fashion accessories arranged for an editorial shoot" />
-            <div className="image-chapter-caption"><span>04</span><strong>Small signatures</strong><button onClick={() => setActiveCategory('Accessories')}>Discover accessories <span>→</span></button></div>
+            <img src="https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&w=1000&q=85" alt="Leather bags and carry essentials" />
+            <div className="image-chapter-caption"><span>04</span><strong>Considered carry</strong><button onClick={() => setActiveCategory('Bags')}>Discover bags <span>→</span></button></div>
           </article>
         </section>
 
@@ -1029,7 +1042,7 @@ function App() {
             <p>{activeCategoryDetails.description}</p>
               <button className="text-button" onClick={() => setActiveCategory('All')}>Back to the edit <span>→</span></button>
           </div>
-          <span className="category-number">{String(activeCategoryIndex < 0 ? 7 : activeCategoryIndex + 2).padStart(2, '0')}</span>
+          <span className="category-number">{String(activeCategoryIndex < 0 ? 7 : activeCategoryIndex + 1).padStart(2, '0')}</span>
         </section>}
 
         <div className="collection-wrap">
@@ -1040,7 +1053,19 @@ function App() {
             <form onSubmit={handleSubmit}>
               <div className="row">
                 <div className="col-md-6"><div className="form-group"><input type="text" placeholder="Product Name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} required /></div></div>
-                <div className="col-md-6"><div className="form-group"><input type="text" placeholder="Category (Men, Women, Accessories...)" value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} required /></div></div>
+                <div className="col-md-6">
+                  <div className="form-group">
+                    <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} required>
+                      <option value="Clothing">Clothing</option>
+                      <option value="Shoes">Shoes</option>
+                      <option value="Bags">Bags</option>
+                      <option value="Watches">Watches</option>
+                      <option value="Jewelry">Jewelry</option>
+                      <option value="Accessories">Accessories</option>
+                      <option value="Gadgets">Gadgets</option>
+                    </select>
+                  </div>
+                </div>
                 <div className="col-md-6"><div className="form-group"><input type="number" min="0" step="1" placeholder="Price in naira (₦)" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} required /></div></div>
                 <div className="col-md-6"><div className="form-group"><input type="number" placeholder="Stock" value={formData.stock} onChange={(e) => setFormData({...formData, stock: e.target.value})} required /></div></div>
                 <div className="col-md-12"><div className="form-group"><input type="file" onChange={(e) => setFormData({...formData, image: e.target.files[0]})} /></div></div>
@@ -1466,12 +1491,13 @@ function App() {
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     required
                   >
+                    <option value="Clothing">Clothing</option>
+                    <option value="Shoes">Shoes</option>
                     <option value="Bags">Bags</option>
                     <option value="Watches">Watches</option>
                     <option value="Jewelry">Jewelry</option>
-                    <option value="Shoes">Shoes</option>
-                    <option value="Clothing">Clothing</option>
                     <option value="Accessories">Accessories</option>
+                    <option value="Gadgets">Gadgets</option>
                   </select>
                 </div>
                 <div className="form-group">
